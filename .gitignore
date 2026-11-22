@@ -1,0 +1,8 @@
+.venv/
+deploy/
+deploy_dummy/
+deploy.zip
+__pycache__/
+*.pt
+*.pth
+*.npy
