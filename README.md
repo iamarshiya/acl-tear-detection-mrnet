@@ -81,7 +81,7 @@ Data split: the 1,130 public training exams are split 80/20 (stratified) into tr
 Requirements: Python 3.10–3.12, about 8 GB RAM. A GPU is optional; CPU inference takes roughly 2 s per exam for AlexNet and 8–12 s for the larger models.
 
 ```bash
-git clone [https://github.com/<your-username>/<your-repo>.git](https://github.com/iamarshiya/acl-tear-detection-mrnet.git)
+git clone https://github.com/iamarshiya/acl-tear-detection-mrnet.git
 cd acl-tear-detection-mrnet
 python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
