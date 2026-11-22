@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KneeScan AI — ACL tear detection</title>
+<style>
+:root{--bg:#0D1417;--panel:#141E22;--panel2:#1A262B;--line:#26353B;--line2:#33464E;--text:#E8EEF0;--muted:#A3B4B9;--teal:#3CC2B0;--tealbg:#14302C;--orange:#F2994A;--orangebg:#22170F;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:15px}
+h1,h2,h3{font-family:"Space Grotesk","Segoe UI",system-ui,sans-serif;letter-spacing:-.01em;margin:0}
+a{color:var(--teal)}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;border-bottom:1px solid var(--line);background:#111A1D}
+.brand{display:flex;align-items:center;gap:12px;font-weight:700;font-size:20px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{height:42px;padding:0 14px;border-radius:8px;border:0;background:transparent;color:var(--muted);font:inherit;font-weight:500;cursor:pointer}
+nav button[aria-selected=true]{background:var(--panel2);color:var(--text)}
+.pill{padding:6px 12px;border-radius:999px;border:1px solid #5A4630;color:#F2B37A;font-size:13px}
+main{max-width:1280px;margin:0 auto;padding:28px}
+.row{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.eyebrow{color:var(--teal);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin:0 0 10px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.btn{height:46px;padding:0 18px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--text);font:inherit;font-weight:500;cursor:pointer}
+.btn.primary{background:var(--teal);border:0;color:var(--bg);font-weight:600;width:100%;height:52px;font-size:16px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.models{display:flex;flex-direction:column;gap:8px}
+.model{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:58px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;cursor:pointer;text-align:left}
+.model[aria-checked=true]{border:1.5px solid var(--teal);background:var(--tealbg)}
+.model:disabled{opacity:.45;cursor:not-allowed}
+.tag{padding:2px 8px;border-radius:999px;background:var(--tealbg);color:#7FDCCF;font-size:11px;font-weight:600;margin-left:6px}
+.samples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sample{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font:inherit;cursor:pointer;padding:8px}
+.sample[aria-pressed=true]{border:1.5px solid var(--teal);background:var(--tealbg)}
+.uploads{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.uploads label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted);padding:10px;border:1.5px dashed var(--line2);border-radius:10px;background:#111A1D}
+.uploads input{font-size:12px;color:var(--text);max-width:100%}
+.steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:20px}
+.step{padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:13px}
+.step b{display:block;font-size:14px;margin-bottom:2px}
+.step.run{border-color:var(--orange);color:#F2B37A}
+.step.done{border-color:var(--teal);background:var(--tealbg)}
+.verdict{border-radius:16px;padding:22px;border:1px solid #6B4426;background:var(--orangebg)}
+.verdict.neg{border-color:#245A52;background:#0F2421}
+.big{font-family:"Space Grotesk",system-ui;font-size:44px;font-weight:700;font-variant-numeric:tabular-nums}
+.gauge{position:relative;height:10px;border-radius:5px;background:#00000055;margin-top:10px}
+.gauge>div{height:100%;border-radius:5px}
+.gauge .thr{position:absolute;top:-5px;width:2px;height:20px;background:var(--text)}
+.bar{height:8px;border-radius:4px;background:var(--bg)}
+.bar>div{height:100%;border-radius:4px;background:var(--orange)}
+.tabs{display:flex;gap:4px;padding:4px;border-radius:10px;background:var(--bg);width:max-content}
+.tabs button{height:38px;min-width:90px;border:0;border-radius:8px;background:transparent;color:var(--muted);font:inherit;font-weight:500;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--panel2);color:var(--text)}
+.viewer{width:100%;max-width:520px;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#000;margin:14px auto}
+.viewer img{width:100%;height:100%;object-fit:contain;display:block}
+.att{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;align-items:end;height:80px}
+.att div{border-radius:4px;background:#2E6F68;min-height:6px}
+.att div.top{background:var(--orange)}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{padding:11px 10px;text-align:right;border-top:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--muted);font-weight:500;font-size:13px;border-top:0}
+tr.best{background:var(--tealbg)}
+.err{color:#FF9F8A;margin-top:10px;font-size:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.kv span:nth-child(odd){color:var(--muted)}
+.hidden{display:none!important}
+@media (max-width:760px){.steps{grid-template-columns:repeat(2,1fr)}.samples,.uploads{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="#14302C" stroke="#3CC2B0"/><path d="M11 7 C 13 13, 12 18, 16 22 S 21 26, 21 26 M 21 7 C 19 12, 19 15, 16 18" fill="none" stroke="#3CC2B0" stroke-width="2" stroke-linecap="round"/></svg>
+    KneeScan AI
+  </div>
+  <nav role="tablist" aria-label="Sections">
+    <button role="tab" aria-selected="true" data-page="analyze">Analyze exam</button>
+    <button role="tab" aria-selected="false" data-page="bench">Model benchmark</button>
+  </nav>
+  <span class="pill">Research prototype · not for clinical use</span>
+</header>
+
+<main>
+<section id="page-analyze">
+  <div class="steps" aria-label="Pipeline progress">
+    <div class="step" id="st0"><b>1 · Input</b><span class="muted">3 MRI planes</span></div>
+    <div class="step" id="st1"><b>2 · Preprocessing</b><span class="muted">12 slices · crop · normalise</span></div>
+    <div class="step" id="st2"><b>3 · Model</b><span class="muted">MIL backbone per view</span></div>
+    <div class="step" id="st3"><b>4 · Prediction</b><span class="muted">TTA · fusion · threshold</span></div>
+    <div class="step" id="st4"><b>5 · Output</b><span class="muted">result · attention · Grad-CAM</span></div>
+  </div>
+
+  <div class="row">
+    <aside class="card" style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:18px">
+      <div>
+        <p class="eyebrow">1 · Choose input</p>
+        <p class="small muted" style="margin:0 0 8px">Held-out test exams (not used in training):</p>
+        <div class="samples" id="samples"></div>
+        <p class="small muted" style="margin:14px 0 8px">…or upload your own .npy volumes (slices × 256 × 256):</p>
+        <div class="uploads">
+          <label>Axial<input type="file" accept=".npy" id="f-axial"></label>
+          <label>Coronal<input type="file" accept=".npy" id="f-coronal"></label>
+          <label>Sagittal<input type="file" accept=".npy" id="f-sagittal"></label>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">2 · Choose model</p>
+        <div class="models" role="radiogroup" aria-label="Model" id="models"></div>
+      </div>
+      <button class="btn primary" id="run">Run analysis</button>
+      <div class="err" id="err" role="alert"></div>
+      <p class="small muted" style="margin:0" id="devinfo"></p>
+    </aside>
+
+    <section style="flex:999 1 600px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <div class="card" id="empty">
+        <h2 style="font-size:24px">No exam analysed yet</h2>
+        <p class="muted">Pick a test exam or upload three planes, choose a model and press <b>Run analysis</b>. The result, per-view scores, slice attention and Grad-CAM appear here.</p>
+      </div>
+
+      <div id="result" class="hidden" style="display:flex;flex-direction:column;gap:20px">
+        <div class="row">
+          <div class="verdict" id="verdict" style="flex:1 1 320px">
+            <p class="eyebrow" style="color:#F2B37A" id="vlabel">Model finding</p>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+              <h2 style="font-size:30px" id="vtext">—</h2><span class="big" id="vprob">—</span>
+            </div>
+            <div class="gauge"><div id="gfill"></div><span class="thr" id="gthr"></span></div>
+            <div class="small" style="display:flex;justify-content:space-between;margin-top:6px;opacity:.85"><span>0</span><span id="thrtxt"></span><span>1</span></div>
+            <p class="small" id="gt" style="margin:12px 0 0"></p>
+          </div>
+          <div class="card" style="flex:1 1 280px">
+            <h3 style="font-size:17px;margin-bottom:12px">Per-view probability</h3>
+            <div id="pviews" style="display:flex;flex-direction:column;gap:12px"></div>
+            <div class="kv" style="margin-top:16px" id="meta"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px">
+            <div class="tabs" role="tablist" id="vtabs"></div>
+            <label style="display:flex;align-items:center;gap:8px;min-height:44px"><input type="checkbox" id="camtoggle" checked style="width:20px;height:20px;accent-color:#3CC2B0">Grad-CAM overlay</label>
+          </div>
+          <div class="viewer"><img id="vimg" alt="Most-attended MRI slice"></div>
+          <p class="small muted" style="text-align:center;margin:0 0 14px" id="vcap"></p>
+          <p class="small muted" style="margin:0 0 6px">Slice attention weights (gated-attention MIL) — orange = slice shown above</p>
+          <div class="att" id="att"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<section id="page-bench" class="hidden">
+  <h1 style="font-size:32px;margin-bottom:6px">Model benchmark</h1>
+  <p class="muted" style="margin:0 0 20px">Metrics recomputed from the deployed checkpoints on the 120-exam held-out MRNet split (fused, Youden threshold).</p>
+  <div class="card" style="overflow-x:auto;margin-bottom:20px">
+    <table><thead><tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>Specificity</th><th>F1</th><th>AUC</th><th>TP / FN / FP / TN</th></tr></thead><tbody id="btable"></tbody></table>
+  </div>
+  <div class="row">
+    <div class="card" style="flex:1 1 480px;overflow-x:auto"><h3 style="font-size:18px;margin-bottom:10px">Per-view test AUC</h3>
+      <table><thead><tr><th>Model</th><th>Axial</th><th>Coronal</th><th>Sagittal</th><th>Fused</th></tr></thead><tbody id="vtable"></tbody></table></div>
+    <div class="card" style="flex:1 1 420px;overflow-x:auto"><h3 style="font-size:18px;margin-bottom:10px">Cost</h3>
+      <table><thead><tr><th>Model</th><th>Params (M)</th><th>Peak VRAM (MB)</th><th>Train time (min)</th></tr></thead><tbody id="ctable"></tbody></table></div>
+  </div>
+</section>
+</main>
+
+<script>
+const VIEWS = ["axial","coronal","sagittal"];
+let INFO = null, model = null, sample = null, RES = null, curView = "sagittal";
+const $ = (id) => document.getElementById(id);
+const pct = (x) => x == null ? "—" : (x*100).toFixed(1) + "%";
+const f3 = (x) => x == null ? "—" : x.toFixed(3);
+const short = (n) => n.replace(" (Baseline)", "");
+
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  $("page-analyze").classList.toggle("hidden", b.dataset.page !== "analyze");
+  $("page-bench").classList.toggle("hidden", b.dataset.page !== "bench");
+});
+
+async function init() {
+  INFO = await (await fetch("/api/info")).json();
+  $("devinfo").textContent = "Inference device: " + INFO.device;
+  const avail = INFO.models.filter(m => m.available);
+  const best = avail.slice().sort((a,b) => (b.test_metrics.f1||0) - (a.test_metrics.f1||0))[0];
+  model = best ? best.name : null;
+  renderModels(best);
+  $("samples").innerHTML = "";
+  INFO.samples.forEach(s => {
+    const b = document.createElement("button");
+    b.className = "sample"; b.setAttribute("aria-pressed","false");
+    b.textContent = "Exam " + s.id;
+    b.onclick = () => { sample = (sample === s.id) ? null : s.id; VIEWS.forEach(v => $("f-"+v).value = "");
+      document.querySelectorAll(".sample").forEach(x => x.setAttribute("aria-pressed", x === b && sample !== null)); };
+    $("samples").appendChild(b);
+  });
+  VIEWS.forEach(v => $("f-"+v).onchange = () => { sample = null; document.querySelectorAll(".sample").forEach(x => x.setAttribute("aria-pressed","false")); });
+  renderBench();
+}
+
+function renderModels(best) {
+  const box = $("models"); box.innerHTML = "";
+  INFO.models.forEach(m => {
+    const t = m.test_metrics || {};
+    const b = document.createElement("button");
+    b.className = "model"; b.setAttribute("role","radio"); b.disabled = !m.available;
+    b.setAttribute("aria-checked", m.name === model);
+    b.innerHTML = `<span><b>${short(m.name)}</b>${best && m.name===best.name ? '<span class="tag">Best F1</span>':''}<br><span class="small muted">${m.params_m ? m.params_m.toFixed(2)+" M params" : ""}${m.available ? "" : " · checkpoints missing"}</span></span>
+      <span style="text-align:right"><b>${pct(t.accuracy)}</b><br><span class="small muted">AUC ${f3(t.auc)}</span></span>`;
+    b.onclick = () => { model = m.name; document.querySelectorAll(".model").forEach(x => x.setAttribute("aria-checked", x === b)); };
+    box.appendChild(b);
+  });
+}
+
+function setStep(n, state) { for (let i=0;i<5;i++){ const e=$("st"+i); e.classList.remove("run","done"); if (i<n) e.classList.add("done"); else if (i===n && state==="run") e.classList.add("run"); } }
+
+$("run").onclick = async () => {
+  $("err").textContent = "";
+  if (!model) { $("err").textContent = "No model checkpoints found in deploy/ckpt."; return; }
+  const fd = new FormData(); fd.append("model", model);
+  let url = "/api/predict";
+  if (sample) { url = "/api/predict_sample"; fd.append("sample_id", sample); }
+  else {
+    let any = false;
+    VIEWS.forEach(v => { const f = $("f-"+v).files[0]; if (f) { fd.append(v, f); any = true; } });
+    if (!any) { $("err").textContent = "Choose a test exam or upload at least one .npy plane."; return; }
+  }
+  $("run").disabled = true; $("run").textContent = "Analysing…";
+  let k = 0; setStep(0,"run"); const timer = setInterval(() => { k = Math.min(k+1, 3); setStep(k,"run"); }, 700);
+  try {
+    const r = await fetch(url, { method: "POST", body: fd });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.detail || "Request failed");
+    RES = j; clearInterval(timer); setStep(5); showResult();
+  } catch (e) { clearInterval(timer); setStep(-1); $("err").textContent = e.message; }
+  $("run").disabled = false; $("run").textContent = "Run analysis";
+};
+
+function showResult() {
+  $("empty").classList.add("hidden"); $("result").classList.remove("hidden");
+  const tear = RES.prediction === "ACL tear";
+  $("verdict").classList.toggle("neg", !tear);
+  $("vlabel").style.color = tear ? "#F2B37A" : "#7FDCCF";
+  $("vtext").textContent = tear ? "ACL tear likely" : "No ACL tear detected";
+  $("vprob").textContent = RES.fused_probability.toFixed(2);
+  $("vprob").style.color = tear ? "#F2994A" : "#3CC2B0";
+  $("gfill").style.width = (RES.fused_probability*100) + "%";
+  $("gfill").style.background = tear ? "#F2994A" : "#3CC2B0";
+  $("gthr").style.left = (RES.threshold*100) + "%";
+  $("thrtxt").textContent = "threshold τ = " + RES.threshold.toFixed(3);
+  if (RES.ground_truth) {
+    const ok = RES.ground_truth === RES.prediction;
+    $("gt").innerHTML = `Ground truth: <b>${RES.ground_truth}</b> — ${ok ? "✓ correct" : "✗ incorrect"}`;
+  } else $("gt").textContent = "";
+  $("pviews").innerHTML = VIEWS.filter(v => RES.views[v]).map(v => {
+    const p = RES.views[v].probability;
+    return `<div><div style="display:flex;justify-content:space-between;font-size:14px"><span style="text-transform:capitalize">${v}</span><b>${p.toFixed(3)}</b></div><div class="bar"><div style="width:${p*100}%"></div></div></div>`;
+  }).join("");
+  $("meta").innerHTML = `<span>Model</span><span>${short(RES.model)}</span><span>Fusion</span><span>${RES.fusion}</span><span>Device</span><span>${RES.device}</span><span>Time</span><span>${RES.seconds} s</span>`;
+  const vs = VIEWS.filter(v => RES.views[v]);
+  if (!RES.views[curView]) curView = vs[vs.length-1];
+  $("vtabs").innerHTML = "";
+  vs.forEach(v => { const b = document.createElement("button"); b.textContent = v[0].toUpperCase()+v.slice(1); b.setAttribute("role","tab");
+    b.setAttribute("aria-selected", v === curView); b.onclick = () => { curView = v; showResult(); }; $("vtabs").appendChild(b); });
+  drawView();
+}
+function drawView() {
+  const e = RES.views[curView];
+  $("vimg").src = $("camtoggle").checked ? e.gradcam : e.image;
+  $("vcap").textContent = `${curView} · slice ${e.top_slice+1} of 12 (volume slice ${e.slice_indices[e.top_slice]+1} / ${e.n_slices_in_volume}) · highest attention`;
+  const mx = Math.max(...e.attention);
+  $("att").innerHTML = e.attention.map((a,i) => `<div class="${i===e.top_slice?'top':''}" style="height:${Math.max(6, a/mx*80)}px" title="slice ${i+1}: ${a.toFixed(3)}"></div>`).join("");
+}
+$("camtoggle").onchange = () => RES && drawView();
+
+function renderBench() {
+  const ms = INFO.models.filter(m => m.test_metrics && m.test_metrics.accuracy != null);
+  const bestF1 = Math.max(...ms.map(m => m.test_metrics.f1));
+  $("btable").innerHTML = ms.map(m => { const t = m.test_metrics, c = t.confusion || {};
+    return `<tr class="${t.f1===bestF1?'best':''}"><td><b>${short(m.name)}</b></td><td>${pct(t.accuracy)}</td><td>${pct(t.precision)}</td><td>${pct(t.recall)}</td><td>${pct(t.specificity)}</td><td>${f3(t.f1)}</td><td>${f3(t.auc)}</td><td>${c.tp??"—"} / ${c.fn??"—"} / ${c.fp??"—"} / ${c.tn??"—"}</td></tr>`; }).join("");
+  $("vtable").innerHTML = ms.map(m => { const p = m.test_metrics.per_view_auc || {};
+    return `<tr><td>${short(m.name)}</td><td>${f3(p.axial)}</td><td>${f3(p.coronal)}</td><td>${f3(p.sagittal)}</td><td><b>${f3(m.test_metrics.auc)}</b></td></tr>`; }).join("");
+  $("ctable").innerHTML = INFO.models.map(m => `<tr><td>${short(m.name)}</td><td>${m.params_m ? m.params_m.toFixed(2) : "—"}</td><td>${m.peak_vram_mb ? Math.round(m.peak_vram_mb) : "—"}</td><td>${m.train_time_s ? Math.round(m.train_time_s/60) : "—"}</td></tr>`).join("");
+}
+init().catch(e => { $("err").textContent = "Could not reach the backend: " + e.message; });
+</script>
+</body>
+</html>
